@@ -1,0 +1,149 @@
+<!-- index.html -->
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>عرض المنتجات</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyAwPNjC8LIx7zGdMN7-aIkuaWaJaBFgpYo",
+      authDomain: "fbff-78cc4.firebaseapp.com",
+      databaseURL: "https://fbff-78cc4-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "fbff-78cc4",
+      storageBucket: "fbff-78cc4.firebasestorage.app",
+      messagingSenderId: "303292418099",
+      appId: "1:303292418099:web:03f46967c457d7aa027b46",
+      measurementId: "G-J8Q0LR6XW5"
+    };
+    firebase.initializeApp(firebaseConfig);
+  </script>
+</head>
+<body>
+  <div class="container">
+    <h1>قائمة المنتجات</h1>
+    <div id="loader" class="loader"></div>
+    <div id="products" class="grid" style="display:none;"></div>
+  </div>
+
+  <!-- Modal -->
+<div id="modal" class="modal">
+  <div class="modal-content" id="modal-content">
+    <span class="close">&times;</span>
+    <img id="modal-img" src="" alt="صورة المنتج">
+    <h2 id="modal-name"></h2>
+    <p id="modal-phone"></p>
+    <a id="modal-instagram" href="" target="_blank"></a>
+    <!-- هنا سيضاف المحتوى الإضافي تلقائيًا -->
+    <button id="downloadBtn">📥 تنزيل كصورة</button>
+  </div>
+</div>
+
+
+  <script>
+    const productsRef = firebase.database().ref("products");
+
+    const loader = document.getElementById("loader");
+    const productsContainer = document.getElementById("products");
+    const modal = document.getElementById("modal");
+    const modalImg = document.getElementById("modal-img");
+    const modalName = document.getElementById("modal-name");
+    const modalPhone = document.getElementById("modal-phone");
+    const modalInstagram = document.getElementById("modal-instagram");
+    const closeModal = document.querySelector(".close");
+
+    closeModal.onclick = () => modal.style.display = "none";
+    window.onclick = (e) => { if (e.target == modal) modal.style.display = "none"; }
+
+    productsRef.on("value", (snapshot) => {
+      productsContainer.innerHTML = "";
+      snapshot.forEach((childSnapshot) => {
+        const product = childSnapshot.val();
+        const div = document.createElement("div");
+        div.classList.add("product");
+        div.innerHTML = `
+  <img src="${product.image}" alt="صورة المنتج">
+  <h2>${product.name}</h2>
+  <p><i class="fas fa-phone"></i> ${product.phone}</p>
+  <a href="https://instagram.com/${product.instagram}" target="_blank">
+    <i class="fab fa-instagram"></i> ${product.instagram}
+  </a>
+  <p><strong>الوضعية المحببة:</strong> ${product.position || '—'}</p>
+  <p><strong>تحب أن تمسك:</strong> ${product.what_hold || '—'}</p>
+  <p><strong>ماذا تريد:</strong> ${product.what_you_want || '—'}</p>
+`;
+
+
+        div.onclick = () => {
+          modalImg.src = product.image;
+modalName.textContent = product.name;
+modalPhone.textContent = `📞 ${product.phone}`;
+modalInstagram.textContent = `@${product.instagram}`;
+modalInstagram.href = `https://instagram.com/${product.instagram}`;
+
+          modal.style.display = "block";
+        };
+
+        // إنشاء عناصر جديدة للمودال
+const modalContent = document.querySelector('.modal-content');
+const extraInfo = document.createElement('div');
+extraInfo.innerHTML = `
+  <p><strong>الوضعية المحببة:</strong> ${product.position || '—'}</p>
+  <p><strong>تحب أن تمسك:</strong> ${product.what_hold || '—'}</p>
+  <p><strong>ماذا تريد:</strong> ${product.what_you_want || '—'}</p>
+`;
+
+// إزالة العناصر القديمة إن وجدت
+const oldExtra = document.getElementById('extra-info');
+if (oldExtra) oldExtra.remove();
+
+// إضافة الجديد
+extraInfo.id = 'extra-info';
+modalContent.appendChild(extraInfo);
+
+        productsContainer.appendChild(div);
+      });
+
+      loader.style.display = "none";
+      productsContainer.style.display = "grid";
+    });
+
+    document.getElementById('downloadBtn').addEventListener('click', () => {
+  const modalElement = document.getElementById('modal-content');
+  const image = document.getElementById('modal-img');
+
+  if (!image.complete) {
+    // لو الصورة لسه ما خلصتش تحميل
+    image.onload = () => captureModal(modalElement);
+  } else {
+    captureModal(modalElement);
+  }
+});
+
+function captureModal(element) {
+  // نعمل Scroll لأعلى عشان نضمن المودال ظاهر بالكامل
+  window.scrollTo(0, 0);
+
+  // ننتظر لحظة صغيرة عشان الـ CSS يستقر
+  setTimeout(() => {
+    html2canvas(element, {
+      allowTaint: true,
+      useCORS: true
+    }).then(canvas => {
+      const link = document.createElement('a');
+      link.download = `${document.getElementById('modal-name').textContent}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    });
+  }, 200); // وقت صغير كفاية لتثبيت كل العناصر
+}
+
+  </script>
+</body>
+</html>

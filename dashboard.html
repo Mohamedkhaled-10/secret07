@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>لوحة التحكم</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyAwPNjC8LIx7zGdMN7-aIkuaWaJaBFgpYo",
+      authDomain: "fbff-78cc4.firebaseapp.com",
+      databaseURL: "https://fbff-78cc4-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "fbff-78cc4",
+      storageBucket: "fbff-78cc4.firebasestorage.app",
+      messagingSenderId: "303292418099",
+      appId: "1:303292418099:web:03f46967c457d7aa027b46",
+      measurementId: "G-J8Q0LR6XW5"
+    };
+    firebase.initializeApp(firebaseConfig);
+  </script>
+</head>
+<body>
+  <div class="container">
+    <h1>إضافة شخص جديد</h1>
+    <form id="productForm">
+      <input type="text" id="name" placeholder="اسم الشخص" required><br>
+      <input type="text" id="phone" placeholder="رقم هاتف الشخص" required><br>
+      <input type="text" id="image" placeholder="رابط صورة الشخص" required><br>
+      <input type="text" id="instagram" placeholder="اسم حساب انستجرام الشخص" required><br>
+      <input type="text" id="position" placeholder="الوضعية المحببة" required><br>
+      <input type="text" id="what_hold" placeholder="ماذا تحب أن تمسك؟" required><br>
+      <input type="text" id="what_you_want" placeholder="ماذا تريد أن تفعل كمستخدم؟" required><br>
+      <button type="submit">إضافة</button>
+    </form>
+
+    <p id="status"></p>
+
+    <h2>جميع الأشخاص</h2>
+    <div id="productList"></div>
+  </div>
+
+  <script>
+    const form = document.getElementById('productForm');
+    const status = document.getElementById('status');
+    const productList = document.getElementById('productList');
+    const productsRef = firebase.database().ref("products");
+
+    let editingId = null;
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+
+      const product = {
+        name: document.getElementById('name').value,
+        phone: document.getElementById('phone').value,
+        image: document.getElementById('image').value,
+        instagram: document.getElementById('instagram').value,
+        position: document.getElementById('position').value,
+        what_hold: document.getElementById('what_hold').value,
+        what_you_want: document.getElementById('what_you_want').value
+      };
+
+      if (editingId) {
+        // تعديل البيانات
+        productsRef.child(editingId).set(product)
+          .then(() => {
+            status.textContent = "✅ تم تعديل البيانات بنجاح";
+            form.reset();
+            editingId = null;
+            document.querySelector('button[type="submit"]').textContent = "إضافة";
+          })
+          .catch((error) => {
+            status.textContent = "حدث خطأ أثناء التعديل: " + error.message;
+          });
+      } else {
+        // إضافة جديد
+        const newProductRef = productsRef.push();
+        newProductRef.set(product)
+          .then(() => {
+            status.textContent = "✅ تمت الإضافة بنجاح";
+            form.reset();
+          })
+          .catch((error) => {
+            status.textContent = "حدث خطأ: " + error.message;
+          });
+      }
+    });
+
+    function editProduct(id) {
+      productsRef.child(id).once('value')
+        .then((snapshot) => {
+          const data = snapshot.val();
+          document.getElementById('name').value = data.name;
+          document.getElementById('phone').value = data.phone;
+          document.getElementById('image').value = data.image;
+          document.getElementById('instagram').value = data.instagram;
+          document.getElementById('position').value = data.position;
+          document.getElementById('what_hold').value = data.what_hold;
+          document.getElementById('what_you_want').value = data.what_you_want;
+
+          editingId = id;
+          status.textContent = "📝 جاري تعديل البيانات...";
+          document.querySelector('button[type="submit"]').textContent = "حفظ التعديل";
+        })
+        .catch((error) => {
+          status.textContent = "حدث خطأ أثناء التحميل: " + error.message;
+        });
+    }
+
+    function deleteProduct(id) {
+      if (confirm("هل أنت متأكد أنك تريد حذف هذا الشخص؟")) {
+        productsRef.child(id).remove()
+          .then(() => {
+            status.textContent = "✅ تم الحذف بنجاح";
+          })
+          .catch((error) => {
+            status.textContent = "حدث خطأ أثناء الحذف: " + error.message;
+          });
+      }
+    }
+
+    productsRef.on('value', (snapshot) => {
+      productList.innerHTML = '';
+      snapshot.forEach((childSnapshot) => {
+        const id = childSnapshot.key;
+        const data = childSnapshot.val();
+
+        const div = document.createElement('div');
+        div.classList.add('product');
+        div.innerHTML = `
+          <img src="${data.image}" alt="صورة" width="100">
+          <h2>${data.name}</h2>
+          <p><strong>📞:</strong> ${data.phone}</p>
+          <p><strong>انستجرام:</strong> <a href="https://instagram.com/${data.instagram}" target="_blank">@${data.instagram}</a></p>
+          <p><strong>الوضعية المحببة:</strong> ${data.position}</p>
+          <p><strong>تحب أن تمسك:</strong> ${data.what_hold}</p>
+          <p><strong>ماذا تريد:</strong> ${data.what_you_want}</p>
+          <div class="action-buttons">
+            <button class="edit-btn" onclick="editProduct('${id}')">تعديل</button>
+            <button class="delete-btn" onclick="deleteProduct('${id}')">حذف</button>
+          </div>
+        `;
+        productList.appendChild(div);
+      });
+    });
+  </script>
+</body>
+</html>
