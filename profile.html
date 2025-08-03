@@ -50,6 +50,7 @@
       object-fit: cover;
       border: 4px solid #ffd369;
       transition: transform 0.3s;
+      cursor: pointer;
     }
 
     .profile-header img:hover {
@@ -98,6 +99,35 @@
       border-radius: 8px;
     }
 
+    .profile-album {
+      margin-top: 40px;
+    }
+
+    .profile-album h2 {
+      margin-bottom: 20px;
+      font-size: 1.8em;
+      color: #ffd369;
+    }
+
+    .album-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 15px;
+    }
+
+    .album-grid img {
+      width: 100%;
+      height: 150px;
+      object-fit: cover;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: transform 0.3s ease;
+    }
+
+    .album-grid img:hover {
+      transform: scale(1.05);
+    }
+
     .back-btn {
       display: inline-block;
       margin-top: 25px;
@@ -127,40 +157,39 @@
     }
 
     .modal {
-  display: none;
-  position: fixed;
-  z-index: 2000;
-  padding-top: 100px;
-  left: 0;
-  top: 0;
-  width: 100%;
-  height: 100%;
-  overflow: auto;
-  background-color: rgba(0,0,0,0.9);
-}
+      display: none;
+      position: fixed;
+      z-index: 2000;
+      padding-top: 100px;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgba(0,0,0,0.9);
+    }
 
-.modal-content {
-  margin: auto;
-  display: block;
-  max-width: 90%;
-  max-height: 80vh;
-  border-radius: 10px;
-}
+    .modal-content {
+      margin: auto;
+      display: block;
+      max-width: 90%;
+      max-height: 80vh;
+      border-radius: 10px;
+    }
 
-.close {
-  position: absolute;
-  top: 60px;
-  left: 40px;
-  color: #fff;
-  font-size: 40px;
-  font-weight: bold;
-  cursor: pointer;
-}
+    .close {
+      position: absolute;
+      top: 60px;
+      left: 40px;
+      color: #fff;
+      font-size: 40px;
+      font-weight: bold;
+      cursor: pointer;
+    }
 
-.close:hover {
-  color: #ffd369;
-}
-
+    .close:hover {
+      color: #ffd369;
+    }
   </style>
 
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -172,12 +201,11 @@
     <p>جاري تحميل البيانات...</p>
   </div>
 
-  <!-- Modal for enlarged profile image -->
-<div id="imageModal" class="modal" style="display:none;">
-  <span class="close" onclick="document.getElementById('imageModal').style.display='none'">&times;</span>
-  <img class="modal-content" id="modalImg">
-</div>
-
+  <!-- Modal for enlarged image -->
+  <div id="imageModal" class="modal">
+    <span class="close" onclick="document.getElementById('imageModal').style.display='none'">&times;</span>
+    <img class="modal-content" id="modalImg">
+  </div>
 
   <script>
     const firebaseConfig = {
@@ -199,40 +227,90 @@
       firebase.database().ref("products/" + id).once("value").then((snapshot) => {
         const data = snapshot.val();
         if (data) {
-          profileDiv.innerHTML = `
-            <div class="profile-header">
-              <img class="zoomable" src="${data.image}" alt="صورة ${data.name}">
-              <div class="info">
-                <h1>${data.name}</h1>
-                <p><strong>📞:</strong> ${data.phone}</p>
-                <p><strong>انستجرام:</strong> <a href="https://instagram.com/${data.instagram}" target="_blank">@${data.instagram}</a></p>
-              </div>
-            </div>
-            <div class="profile-details">
-              <p><strong>الوضعية المحببة:</strong> ${data.position}</p>
-              <p><strong>تحب أن تمسك:</strong> ${data.what_hold}</p>
-              <p><strong>ماذا تريد:</strong> ${data.what_you_want}</p>
-            </div>
-            <a href="index.html" class="back-btn">⬅ العودة</a>
-          `;
+  // ألبوم الصور
+  let albumSection = '';
+  if (data.album && Object.values(data.album).length > 0) {
+    const images = Object.values(data.album).map(url => `<img class="zoomable" src="${url}">`).join('');
+    albumSection = `
+      <div class="profile-album">
+        <h2>📸 ألبوم الصور</h2>
+        <div class="album-grid">${images}</div>
+      </div>
+    `;
+  } else {
+    albumSection = `
+      <div class="profile-album">
+        <h2>📸 ألبوم الصور</h2>
+        <p style="color:#aaa;">لا توجد صور حالياً.</p>
+      </div>
+    `;
+  }
+
+  // ألبوم الفيديوهات
+  let videoSection = '';
+  if (data.videos && Object.values(data.videos).length > 0) {
+    const videos = Object.values(data.videos).map(url => `
+      <video controls style="width: 100%; max-width: 400px; border-radius: 10px;">
+        <source src="${url}" type="video/mp4">
+        متصفحك لا يدعم تشغيل الفيديو.
+      </video>
+    `).join('');
+    videoSection = `
+      <div class="profile-album" style="margin-top: 50px;">
+        <h2>🎥 مقاطع الفيديو</h2>
+        <div class="album-grid" style="grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));">
+          ${videos}
+        </div>
+      </div>
+    `;
+  } else {
+    videoSection = `
+      <div class="profile-album" style="margin-top: 50px;">
+        <h2>🎥 مقاطع الفيديو</h2>
+        <p style="color:#aaa;">لا توجد فيديوهات حالياً.</p>
+      </div>
+    `;
+  }
+
+  // عرض البيانات في الصفحة
+  profileDiv.innerHTML = `
+    <div class="profile-header">
+      <img class="zoomable" src="${data.image}" alt="صورة ${data.name}">
+      <div class="info">
+        <h1>${data.name}</h1>
+        <p><strong>📞:</strong> ${data.phone}</p>
+        <p><strong>انستجرام:</strong> <a href="https://instagram.com/${data.instagram}" target="_blank">@${data.instagram}</a></p>
+      </div>
+    </div>
+    <div class="profile-details">
+      <p><strong>الوضعية المحببة:</strong> ${data.position}</p>
+      <p><strong>تحب أن تمسك:</strong> ${data.what_hold}</p>
+      <p><strong>ماذا تريد:</strong> ${data.what_you_want}</p>
+    </div>
+    ${albumSection}
+    ${videoSection}
+    <a href="index.html" class="back-btn">⬅ العودة</a>
+  `;
         } else {
           profileDiv.innerHTML = "<p>❌ هذا البروفايل غير موجود.</p>";
         }
+      }).catch(err => {
+        profileDiv.innerHTML = "<p>⚠ حدث خطأ أثناء تحميل البيانات.</p>";
+        console.error(err);
       });
     } else {
       profileDiv.innerHTML = "<p>⚠ لم يتم تحديد معرف الشخص.</p>";
     }
 
-    // Zoom image on click
-document.addEventListener('click', function(e) {
-  if (e.target.classList.contains('zoomable')) {
-    const modal = document.getElementById('imageModal');
-    const modalImg = document.getElementById('modalImg');
-    modalImg.src = e.target.src;
-    modal.style.display = 'block';
-  }
-});
-
+    // تكبير أي صورة عند الضغط عليها
+    document.addEventListener('click', function(e) {
+      if (e.target.classList.contains('zoomable')) {
+        const modal = document.getElementById('imageModal');
+        const modalImg = document.getElementById('modalImg');
+        modalImg.src = e.target.src;
+        modal.style.display = 'block';
+      }
+    });
   </script>
 </body>
 </html>
