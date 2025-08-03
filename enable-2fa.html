@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>تفعيل التحقق الثنائي</title>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyAwPNjC8LIx7zGdMN7-aIkuaWaJaBFgpYo",
+      authDomain: "fbff-78cc4.firebaseapp.com",
+      projectId: "fbff-78cc4"
+    };
+    firebase.initializeApp(firebaseConfig);
+  </script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #121212;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+    .box {
+      background-color: #1e1e2f;
+      padding: 30px;
+      border-radius: 10px;
+      max-width: 400px;
+      width: 100%;
+      box-shadow: 0 0 15px rgba(0,0,0,0.4);
+    }
+    input, button {
+      width: 100%;
+      padding: 10px;
+      margin: 8px 0;
+      border-radius: 5px;
+      border: none;
+    }
+    input {
+      background-color: #333;
+      color: #fff;
+    }
+    button {
+      background-color: #00adb5;
+      color: #fff;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #00959d;
+    }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h2>تفعيل التحقق الثنائي</h2>
+    <input type="text" id="phoneNumber" placeholder="📱 أدخل رقم الهاتف مع كود الدولة +20...">
+    <div id="recaptcha-container"></div>
+    <button onclick="start2FA()">إرسال رمز التحقق</button>
+    <input type="text" id="code" placeholder="🔒 أدخل كود التحقق">
+    <button onclick="verifyCode()">تأكيد وتفعيل</button>
+    <p id="status"></p>
+  </div>
+
+  <script>
+    let verificationId = "";
+    let recaptchaVerifier;
+
+    firebase.auth().onAuthStateChanged(function(user) {
+      if (!user) {
+        window.location.href = "login.html"; // لازم يكون مسجل دخول
+      }
+    });
+
+    function start2FA() {
+      const phone = document.getElementById('phoneNumber').value.trim();
+      const status = document.getElementById('status');
+      const user = firebase.auth().currentUser;
+
+      if (!user) return;
+
+      recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
+        size: 'normal',
+        callback: (response) => {},
+        'expired-callback': () => {
+          status.textContent = "📛 انتهت صلاحية التحقق، حاول مرة أخرى.";
+        }
+      });
+
+      user.multiFactor.getSession().then((session) => {
+        const phoneInfoOptions = {
+          phoneNumber: phone,
+          session: session
+        };
+
+        const phoneAuthProvider = new firebase.auth.PhoneAuthProvider();
+        return phoneAuthProvider.verifyPhoneNumber(phoneInfoOptions, recaptchaVerifier);
+      }).then((id) => {
+        verificationId = id;
+        status.textContent = "📨 تم إرسال رمز التحقق إلى هاتفك.";
+      }).catch((error) => {
+        status.textContent = "❌ خطأ: " + error.message;
+      });
+    }
+
+    function verifyCode() {
+      const code = document.getElementById("code").value.trim();
+      const status = document.getElementById('status');
+      const user = firebase.auth().currentUser;
+
+      const cred = firebase.auth.PhoneAuthProvider.credential(verificationId, code);
+      const multiFactorAssertion = firebase.auth.PhoneMultiFactorGenerator.assertion(cred);
+
+      user.multiFactor.enroll(multiFactorAssertion)
+        .then(() => {
+          status.textContent = "✅ تم تفعيل التحقق الثنائي بنجاح.";
+        })
+        .catch((error) => {
+          status.textContent = "❌ فشل التفعيل: " + error.message;
+        });
+    }
+  </script>
+</body>
+</html>
