@@ -121,6 +121,76 @@
       }
     }
 
+    function addImageToAlbum(id) {
+  const imageUrl = prompt("📷 أدخل رابط الصورة لإضافتها إلى ألبوم هذا الشخص:");
+
+  if (imageUrl && imageUrl.trim() !== "") {
+    const albumRef = productsRef.child(id).child("album");
+
+    albumRef.once("value").then((snapshot) => {
+      const currentAlbum = snapshot.val() || [];
+      const updatedAlbum = [...Object.values(currentAlbum), imageUrl.trim()];
+
+      albumRef.set(updatedAlbum)
+        .then(() => {
+          alert("✅ تم إضافة الصورة للألبوم بنجاح.");
+        })
+        .catch((error) => {
+          alert("❌ حدث خطأ أثناء الإضافة: " + error.message);
+        });
+    });
+  }
+}
+
+function addAlbumImage(id) {
+  const imageUrl = prompt("📷 أدخل رابط الصورة:");
+  if (imageUrl && imageUrl.trim() !== "") {
+    const albumRef = productsRef.child(id).child("album");
+    albumRef.once("value").then((snapshot) => {
+      const currentAlbum = snapshot.val() || [];
+      const updated = [...currentAlbum, imageUrl.trim()];
+      albumRef.set(updated);
+    });
+  }
+}
+
+function deleteAlbumImage(id, index) {
+  const albumRef = productsRef.child(id).child("album");
+  albumRef.once("value").then((snapshot) => {
+    const album = snapshot.val();
+    if (album && Array.isArray(album)) {
+      album.splice(index, 1); // حذف الصورة
+      albumRef.set(album);
+    }
+  });
+}
+
+function addVideo(id) {
+  const videoUrl = prompt("🎬 أدخل رابط الفيديو:");
+  if (videoUrl && videoUrl.trim() !== "") {
+    const videosRef = productsRef.child(id).child("videos");
+    videosRef.once("value").then((snapshot) => {
+      const currentVideos = snapshot.val() || [];
+      const updatedVideos = [...Object.values(currentVideos), videoUrl.trim()];
+      videosRef.set(updatedVideos)
+        .then(() => alert("✅ تم إضافة الفيديو بنجاح."))
+        .catch((err) => alert("❌ خطأ أثناء الإضافة: " + err.message));
+    });
+  }
+}
+
+
+function deleteVideo(id, index) {
+  const videosRef = productsRef.child(id).child("videos");
+  videosRef.once("value").then((snapshot) => {
+    const videos = snapshot.val();
+    if (videos && Array.isArray(videos)) {
+      videos.splice(index, 1);
+      videosRef.set(videos);
+    }
+  });
+}
+
     productsRef.on('value', (snapshot) => {
       productList.innerHTML = '';
       snapshot.forEach((childSnapshot) => {
@@ -129,19 +199,57 @@
 
         const div = document.createElement('div');
         div.classList.add('product');
-        div.innerHTML = `
-          <img src="${data.image}" alt="صورة" width="100">
-          <h2>${data.name}</h2>
-          <p><strong>📞:</strong> ${data.phone}</p>
-          <p><strong>انستجرام:</strong> <a href="https://instagram.com/${data.instagram}" target="_blank">@${data.instagram}</a></p>
-          <p><strong>الوضعية المحببة:</strong> ${data.position}</p>
-          <p><strong>تحب أن تمسك:</strong> ${data.what_hold}</p>
-          <p><strong>ماذا تريد:</strong> ${data.what_you_want}</p>
-          <div class="action-buttons">
-            <button class="edit-btn" onclick="editProduct('${id}')">تعديل</button>
-            <button class="delete-btn" onclick="deleteProduct('${id}')">حذف</button>
-          </div>
-        `;
+        let albumImages = '';
+if (data.album && Array.isArray(data.album)) {
+  albumImages = data.album.map((url, index) => `
+    <div style="margin: 5px 0;">
+      <img src="${url}" width="100" style="border-radius:8px;vertical-align:middle;"> 
+      <button onclick="deleteAlbumImage('${id}', ${index})" style="margin-right:10px;">❌ حذف</button>
+    </div>
+  `).join('');
+}
+
+let videoSection = '';
+if (data.videos && Array.isArray(data.videos)) {
+  videoSection = data.videos.map((url, index) => `
+    <div style="margin: 10px 0;">
+      <video width="300" controls style="border-radius: 8px;">
+        <source src="${url}" type="video/mp4">
+        المتصفح لا يدعم تشغيل الفيديو.
+      </video><br>
+      <button onclick="deleteVideo('${id}', ${index})" style="margin-top:5px;">❌ حذف الفيديو</button>
+    </div>
+  `).join('');
+}
+
+
+div.innerHTML = `
+  <img src="${data.image}" alt="صورة" width="100">
+  <h2>${data.name}</h2>
+  <p><strong>📞:</strong> ${data.phone}</p>
+  <p><strong>انستجرام:</strong> <a href="https://instagram.com/${data.instagram}" target="_blank">@${data.instagram}</a></p>
+  <p><strong>الوضعية المحببة:</strong> ${data.position}</p>
+  <p><strong>تحب أن تمسك:</strong> ${data.what_hold}</p>
+  <p><strong>ماذا تريد:</strong> ${data.what_you_want}</p>
+
+  <div style="margin: 10px 0;">
+    <strong>📸 ألبوم الصور:</strong><br>
+    ${albumImages || '<p style="color:#aaa;">لا توجد صور</p>'}
+    <button onclick="addAlbumImage('${id}')">➕ أضف صورة</button>
+  </div>
+
+  <div style="margin: 10px 0;">
+    <strong>🎥 فيديو:</strong><br>
+    ${videoSection || '<p style="color:#aaa;">لا يوجد فيديو</p>'}
+    <button onclick="addVideo('${id}')">➕ أضف فيديو</button>
+  </div>
+
+  <div class="action-buttons">
+    <button class="edit-btn" onclick="editProduct('${id}')">تعديل</button>
+    <button class="delete-btn" onclick="deleteProduct('${id}')">حذف</button>
+  </div>
+`;
+
         productList.appendChild(div);
       });
     });
