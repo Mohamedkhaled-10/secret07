@@ -65,34 +65,36 @@
   </div>
 
   <script>
-    let verificationId = "";
-    let recaptchaVerifier;
+  let verificationId = "";
+  let recaptchaVerifier;
 
-    firebase.auth().onAuthStateChanged(function(user) {
-      if (!user) {
-        window.location.href = "login.html"; // لازم يكون مسجل دخول
-      } else {
-        // إنشاء reCAPTCHA مرة واحدة فقط
-        recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
-          size: 'normal',
-          callback: function(response) {},
-          'expired-callback': function() {
-            document.getElementById('status').textContent = "⚠️ انتهت صلاحية التحقق، أعد المحاولة.";
-          }
-        });
-        recaptchaVerifier.render(); // تهيئة reCAPTCHA
-      }
-    });
+  firebase.auth().onAuthStateChanged(function(user) {
+    if (!user) {
+      window.location.href = "login.html";
+    }
+  });
 
-    function start2FA() {
-      const phone = document.getElementById('phoneNumber').value.trim();
-      const status = document.getElementById('status');
-      const user = firebase.auth().currentUser;
+  function start2FA() {
+    const phone = document.getElementById('phoneNumber').value.trim();
+    const status = document.getElementById('status');
+    const user = firebase.auth().currentUser;
 
-      if (!user || !recaptchaVerifier) {
-        status.textContent = "❌ لا يمكن المتابعة، تأكد من تسجيل الدخول.";
-        return;
-      }
+    if (!user) return;
+
+    // تحذير للمستخدم
+    if (!phone.startsWith('+20')) {
+      status.textContent = "⚠️ الرجاء استخدام رقم تجريبي مضاف داخل Firebase Console.";
+      return;
+    }
+
+    try {
+      recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
+        size: 'normal',
+        callback: (response) => {},
+        'expired-callback': () => {
+          status.textContent = "📛 انتهت صلاحية التحقق، حاول مرة أخرى.";
+        }
+      });
 
       user.multiFactor.getSession().then((session) => {
         const phoneInfoOptions = {
@@ -104,36 +106,32 @@
         return phoneAuthProvider.verifyPhoneNumber(phoneInfoOptions, recaptchaVerifier);
       }).then((id) => {
         verificationId = id;
-        status.textContent = "✅ تم إرسال رمز التحقق إلى هاتفك.";
+        status.textContent = "📨 تم إرسال رمز التحقق إلى هاتفك التجريبي.";
       }).catch((error) => {
-        status.textContent = "❌ خطأ: " + error.message;
+        status.textContent = "❌ غير مسموح باستخدام الرقم إلا إذا كان رقمًا تجريبيًا من Firebase.";
       });
+    } catch (err) {
+      status.textContent = "❌ خطأ غير متوقع: " + err.message;
     }
+  }
 
-    function verifyCode() {
-      const code = document.getElementById("code").value.trim();
-      const status = document.getElementById('status');
-      const user = firebase.auth().currentUser;
+  function verifyCode() {
+    const code = document.getElementById("code").value.trim();
+    const status = document.getElementById('status');
+    const user = firebase.auth().currentUser;
 
-      if (!user || !verificationId) {
-        status.textContent = "❌ يرجى إدخال رقم الهاتف أولاً.";
-        return;
-      }
+    const cred = firebase.auth.PhoneAuthProvider.credential(verificationId, code);
+    const multiFactorAssertion = firebase.auth.PhoneMultiFactorGenerator.assertion(cred);
 
-      const cred = firebase.auth.PhoneAuthProvider.credential(verificationId, code);
-      const multiFactorAssertion = firebase.auth.PhoneMultiFactorGenerator.assertion(cred);
+    user.multiFactor.enroll(multiFactorAssertion)
+      .then(() => {
+        status.textContent = "✅ تم تفعيل التحقق الثنائي (على الرقم التجريبي).";
+      })
+      .catch((error) => {
+        status.textContent = "❌ فشل التفعيل: " + error.message;
+      });
+  }
+</script>
 
-      user.multiFactor.enroll(multiFactorAssertion)
-        .then(() => {
-          status.textContent = "✅ تم تفعيل التحقق الثنائي بنجاح.";
-          setTimeout(() => {
-            window.location.href = "dashboard.html";
-          }, 2000);
-        })
-        .catch((error) => {
-          status.textContent = "❌ فشل التفعيل: " + error.message;
-        });
-    }
-  </script>
 </body>
 </html>
