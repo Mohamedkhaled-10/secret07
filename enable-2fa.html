@@ -71,6 +71,16 @@
     firebase.auth().onAuthStateChanged(function(user) {
       if (!user) {
         window.location.href = "login.html"; // لازم يكون مسجل دخول
+      } else {
+        // إنشاء reCAPTCHA مرة واحدة فقط
+        recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
+          size: 'normal',
+          callback: function(response) {},
+          'expired-callback': function() {
+            document.getElementById('status').textContent = "⚠️ انتهت صلاحية التحقق، أعد المحاولة.";
+          }
+        });
+        recaptchaVerifier.render(); // تهيئة reCAPTCHA
       }
     });
 
@@ -79,15 +89,10 @@
       const status = document.getElementById('status');
       const user = firebase.auth().currentUser;
 
-      if (!user) return;
-
-      recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
-        size: 'normal',
-        callback: (response) => {},
-        'expired-callback': () => {
-          status.textContent = "📛 انتهت صلاحية التحقق، حاول مرة أخرى.";
-        }
-      });
+      if (!user || !recaptchaVerifier) {
+        status.textContent = "❌ لا يمكن المتابعة، تأكد من تسجيل الدخول.";
+        return;
+      }
 
       user.multiFactor.getSession().then((session) => {
         const phoneInfoOptions = {
@@ -99,7 +104,7 @@
         return phoneAuthProvider.verifyPhoneNumber(phoneInfoOptions, recaptchaVerifier);
       }).then((id) => {
         verificationId = id;
-        status.textContent = "📨 تم إرسال رمز التحقق إلى هاتفك.";
+        status.textContent = "✅ تم إرسال رمز التحقق إلى هاتفك.";
       }).catch((error) => {
         status.textContent = "❌ خطأ: " + error.message;
       });
@@ -110,12 +115,20 @@
       const status = document.getElementById('status');
       const user = firebase.auth().currentUser;
 
+      if (!user || !verificationId) {
+        status.textContent = "❌ يرجى إدخال رقم الهاتف أولاً.";
+        return;
+      }
+
       const cred = firebase.auth.PhoneAuthProvider.credential(verificationId, code);
       const multiFactorAssertion = firebase.auth.PhoneMultiFactorGenerator.assertion(cred);
 
       user.multiFactor.enroll(multiFactorAssertion)
         .then(() => {
           status.textContent = "✅ تم تفعيل التحقق الثنائي بنجاح.";
+          setTimeout(() => {
+            window.location.href = "dashboard.html";
+          }, 2000);
         })
         .catch((error) => {
           status.textContent = "❌ فشل التفعيل: " + error.message;
