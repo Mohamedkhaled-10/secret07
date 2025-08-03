@@ -65,18 +65,16 @@
       productsContainer.innerHTML = "";
       snapshot.forEach((childSnapshot) => {
         const product = childSnapshot.val();
-        const div = document.createElement("div");
-        div.classList.add("product");
-        div.innerHTML = `
+        const div = document.createElement("a");
+div.classList.add("product");
+div.href = `profile.html?id=${childSnapshot.key}`;
+div.innerHTML = `
   <img src="${product.image}" alt="صورة المنتج">
   <h2>${product.name}</h2>
   <p><i class="fas fa-phone"></i> ${product.phone}</p>
   <a href="https://instagram.com/${product.instagram}" target="_blank">
     <i class="fab fa-instagram"></i> ${product.instagram}
   </a>
-  <p><strong>الوضعية المحببة:</strong> ${product.position || '—'}</p>
-  <p><strong>تحب أن تمسك:</strong> ${product.what_hold || '—'}</p>
-  <p><strong>ماذا تريد:</strong> ${product.what_you_want || '—'}</p>
 `;
 
 
@@ -146,4 +144,5 @@ function captureModal(element) {
 
   </script>
 </body>
+
 </html>
