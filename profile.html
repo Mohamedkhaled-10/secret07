@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>بروفايل الشخص</title>
+
+  <!-- خط احترافي -->
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@500;700&display=swap" rel="stylesheet">
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Cairo', sans-serif;
+    }
+
+    body {
+      padding: 40px 20px;
+      background: linear-gradient(135deg, #1e1e2f, #27293d);
+      color: #fff;
+      min-height: 100vh;
+    }
+
+    .profile-section {
+      max-width: 1000px;
+      margin: auto;
+      background-color: #2c2f4a;
+      padding: 40px 30px;
+      border-radius: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      transition: all 0.3s ease-in-out;
+    }
+
+    .profile-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 30px;
+      border-bottom: 2px solid #444;
+      padding-bottom: 30px;
+      margin-bottom: 35px;
+    }
+
+    .profile-header img {
+      width: 150px;
+      height: 150px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 4px solid #ffd369;
+      transition: transform 0.3s;
+    }
+
+    .profile-header img:hover {
+      transform: scale(1.05);
+    }
+
+    .info {
+      flex: 1;
+    }
+
+    .info h1 {
+      font-size: 2.5em;
+      color: #ffd369;
+      margin-bottom: 10px;
+    }
+
+    .info p,
+    .info a {
+      font-size: 1.2em;
+      color: #ccc;
+      margin-bottom: 10px;
+      line-height: 1.7;
+    }
+
+    .info a {
+      color: #00adb5;
+      text-decoration: none;
+      transition: color 0.3s ease;
+    }
+
+    .info a:hover {
+      text-decoration: underline;
+      color: #00d2df;
+    }
+
+    .profile-details {
+      padding-right: 5px;
+    }
+
+    .profile-details p {
+      font-size: 1.3em;
+      margin-bottom: 15px;
+      padding: 12px;
+      background-color: #1e1e2f;
+      border-left: 5px solid #00adb5;
+      border-radius: 8px;
+    }
+
+    .back-btn {
+      display: inline-block;
+      margin-top: 25px;
+      padding: 12px 25px;
+      background-color: #00adb5;
+      color: white;
+      font-size: 1.1em;
+      border-radius: 10px;
+      text-decoration: none;
+      transition: background-color 0.3s ease, transform 0.2s ease;
+    }
+
+    .back-btn:hover {
+      background-color: #009aa4;
+      transform: scale(1.05);
+    }
+
+    @media (max-width: 600px) {
+      .profile-header {
+        flex-direction: column;
+        text-align: center;
+      }
+
+      .info h1 {
+        font-size: 2em;
+      }
+    }
+
+    .modal {
+  display: none;
+  position: fixed;
+  z-index: 2000;
+  padding-top: 100px;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background-color: rgba(0,0,0,0.9);
+}
+
+.modal-content {
+  margin: auto;
+  display: block;
+  max-width: 90%;
+  max-height: 80vh;
+  border-radius: 10px;
+}
+
+.close {
+  position: absolute;
+  top: 60px;
+  left: 40px;
+  color: #fff;
+  font-size: 40px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.close:hover {
+  color: #ffd369;
+}
+
+  </style>
+
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+</head>
+<body>
+
+  <div class="profile-section" id="profile">
+    <p>جاري تحميل البيانات...</p>
+  </div>
+
+  <!-- Modal for enlarged profile image -->
+<div id="imageModal" class="modal" style="display:none;">
+  <span class="close" onclick="document.getElementById('imageModal').style.display='none'">&times;</span>
+  <img class="modal-content" id="modalImg">
+</div>
+
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyAwPNjC8LIx7zGdMN7-aIkuaWaJaBFgpYo",
+      authDomain: "fbff-78cc4.firebaseapp.com",
+      databaseURL: "https://fbff-78cc4-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "fbff-78cc4",
+      storageBucket: "fbff-78cc4.firebasestorage.app",
+      messagingSenderId: "303292418099",
+      appId: "1:303292418099:web:03f46967c457d7aa027b46"
+    };
+    firebase.initializeApp(firebaseConfig);
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const id = urlParams.get("id");
+    const profileDiv = document.getElementById("profile");
+
+    if (id) {
+      firebase.database().ref("products/" + id).once("value").then((snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+          profileDiv.innerHTML = `
+            <div class="profile-header">
+              <img class="zoomable" src="${data.image}" alt="صورة ${data.name}">
+              <div class="info">
+                <h1>${data.name}</h1>
+                <p><strong>📞:</strong> ${data.phone}</p>
+                <p><strong>انستجرام:</strong> <a href="https://instagram.com/${data.instagram}" target="_blank">@${data.instagram}</a></p>
+              </div>
+            </div>
+            <div class="profile-details">
+              <p><strong>الوضعية المحببة:</strong> ${data.position}</p>
+              <p><strong>تحب أن تمسك:</strong> ${data.what_hold}</p>
+              <p><strong>ماذا تريد:</strong> ${data.what_you_want}</p>
+            </div>
+            <a href="index.html" class="back-btn">⬅ العودة</a>
+          `;
+        } else {
+          profileDiv.innerHTML = "<p>❌ هذا البروفايل غير موجود.</p>";
+        }
+      });
+    } else {
+      profileDiv.innerHTML = "<p>⚠ لم يتم تحديد معرف الشخص.</p>";
+    }
+
+    // Zoom image on click
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('zoomable')) {
+    const modal = document.getElementById('imageModal');
+    const modalImg = document.getElementById('modalImg');
+    modalImg.src = e.target.src;
+    modal.style.display = 'block';
+  }
+});
+
+  </script>
+</body>
+</html>
