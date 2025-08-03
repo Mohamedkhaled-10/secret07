@@ -20,6 +20,16 @@
     };
     firebase.initializeApp(firebaseConfig);
   </script>
+  <script>
+  // منع الدخول لغير المسجلين
+  firebase.auth().onAuthStateChanged(function(user) {
+    if (!user) {
+      // لم يسجل دخول => تحويل إلى صفحة تسجيل الدخول
+      window.location.href = "login.html";
+    }
+  });
+</script>
+
 </head>
 <body>
   <div class="container">
@@ -256,3 +266,4 @@ div.innerHTML = `
   </script>
 </body>
 </html>
+
